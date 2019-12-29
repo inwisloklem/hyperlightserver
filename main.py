@@ -1,4 +1,5 @@
 import socket
+from http.client import responses
 from email.utils import formatdate
 
 
@@ -46,16 +47,36 @@ class HTTPServer(TCPServer):
         """
         Handles incoming data and returns a response.
         """
+        body = "Super secret body message"
+
+        content_length_header = self.make_content_length_header(body)
+        content_type_header = self.make_content_type_header()
+        date_header = self.make_date_header()
+        response_line = self.make_response_line()
+
         response = "\r\n".join(
             [
-                "HTTP/1.1 200 OK",
-                "Content-Type: text/html; charset=UTF-8",
-                "Date: " + formatdate(timeval=None, localtime=False, usegmt=True),
-                "",
-                "Body",
+                response_line,
+                content_length_header,
+                content_type_header,
+                date_header,
+                "",  # blank line to separate body from headers
+                body,
             ]
         )
         return bytes(response, "utf-8")
+
+    def make_content_length_header(self, body):
+        return "Content-Length: %s" % len(bytes(body, "utf-8"))
+
+    def make_content_type_header(self):
+        return "Content-Type: text/html; charset=UTF-8"
+
+    def make_date_header(self):
+        return "Date: %s" % formatdate(timeval=None, localtime=False, usegmt=True)
+
+    def make_response_line(self, status_code=200):
+        return "HTTP/1.1 %s %s" % (status_code, responses[status_code])
 
 
 if __name__ == "__main__":
