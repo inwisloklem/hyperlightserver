@@ -64,6 +64,9 @@ class HTTPServer(TCPServer):
         return bytes(response, "utf-8")
 
     def make_response_line(self, status_code=200):
+        """
+        Constructs response line from HTTP version, status code and message.
+        """
         return " ".join([self.http_version, str(status_code), responses[status_code]])
 
     def make_response_headers(self, body, mime_type="text/html; charset=UTF-8", more_headers=None):
@@ -86,7 +89,7 @@ class HTTPServer(TCPServer):
         """
         Parses request and returns a request method.
         """
-        lines =  str(data, "utf-8").split("\r\n")
+        lines = str(data, "utf-8").split("\r\n")
         request_line_words = head(lines).split(' ')
         return head(request_line_words)
 
