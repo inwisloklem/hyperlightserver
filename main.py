@@ -1,3 +1,4 @@
+import os
 import socket
 from http.client import responses
 from email.utils import formatdate
@@ -38,53 +39,66 @@ class TCPServer:
 class HTTPServer(TCPServer):
     http_version = "HTTP/1.1"
 
-    def handle_501_HTTP(self):
-        """Handles 501 Not Implemented response."""
-        body = """
-        <!DOCTYPE html>
-        <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <meta http-equiv="X-UA-Compatible" content="ie=edge">
-                <title>Not implemented</title>
-            </head>
-            <body>
-                <h1>Not implemented
-            </body>
-        </html>
-        """
-        response_line = self.make_response_line(status_code=501)
-        headers = self.make_response_headers()
-        response = "\r\n".join([response_line, headers, "", body])
+    def handle_404_HTTP(self):
+        """Handles 404 Not found."""
+        with open("404.html") as f:
+            body = f.read()
 
-        return bytes(response, "utf-8")
-
-    def handle_GET(self):
-        """Handles GET request."""
-        body = "Handle GET body."
-        response_line = self.make_response_line()
+        line = self.make_response_line(status_code=404)
         headers = self.make_response_headers(
             more_headers={"Content-Length": len(bytes(body, "utf-8"))}
         )
-        response = "\r\n".join([response_line, headers, "", body])
+        response = "\r\n".join([line, headers, "", body])
 
         return bytes(response, "utf-8")
 
-    def handle_OPTIONS(self):
+    def handle_501_HTTP(self):
+        """Handles 501 Not Implemented."""
+        with open("501.html") as f:
+            body = f.read()
+
+        line = self.make_response_line(status_code=501)
+        headers = self.make_response_headers(
+            more_headers={"Content-Length": len(bytes(body, "utf-8"))}
+        )
+        response = "\r\n".join([line, headers, "", body])
+
+        return bytes(response, "utf-8")
+
+    def handle_GET(self, request_uri):
+        """Handles GET request."""
+        filename = request_uri.strip("/") or "index.html"
+
+        if os.path.exists(filename):
+            with open(filename) as f:
+                body = f.read()
+
+            line = self.make_response_line()
+            headers = self.make_response_headers(
+                more_headers={"Content-Length": len(bytes(body, "utf-8"))}
+            )
+            response = "\r\n".join([line, headers, "", body])
+
+            return bytes(response, "utf-8")
+
+        return self.handle_404_HTTP()
+
+    def handle_OPTIONS(self, _):
         """Handles OPTIONS request."""
-        response_line = self.make_response_line()
+        line = self.make_response_line()
         headers = self.make_response_headers(more_headers={"Allow": "GET, OPTIONS"})
-        response = "\r\n".join([response_line, headers, ""])
+        response = "\r\n".join([line, headers, ""])
 
         return bytes(response, "utf-8")
 
     def handle_request(self, data):
         """Handles incoming data and returns a response."""
-        request_method = self.parse_request(data)
-        request_handler = getattr(self, f"handle_{request_method}", None)
+        request = self.parse_request(data)
+        handler = getattr(self, f"handle_{request['method']}", None)
 
-        return request_handler() if request_handler else self.handle_501_HTTP()
+        if handler:
+            return handler(request["uri"])
+        return self.handle_501_HTTP()
 
     def make_response_headers(self, mime_type="text/html; charset=UTF-8", more_headers=None):
         """Constructs response headers.
@@ -115,8 +129,9 @@ class HTTPServer(TCPServer):
         GET    /   HTTP/1.1
         """
         lines = str(data, "utf-8").split("\r\n")
-        request_line_words = head(lines).split(" ")
-        return head(request_line_words)
+        method, uri, _ = head(lines).split(" ")
+
+        return {"method": method, "uri": uri}
 
 
 if __name__ == "__main__":
