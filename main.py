@@ -41,7 +41,7 @@ class HTTPServer(TCPServer):
 
     def handle_404_HTTP(self):
         """Handles 404 Not found."""
-        with open("404.html") as f:
+        with open(".pages/404.html") as f:
             body = f.read()
 
         line = self.make_response_line(status_code=404)
@@ -54,7 +54,7 @@ class HTTPServer(TCPServer):
 
     def handle_501_HTTP(self):
         """Handles 501 Not Implemented."""
-        with open("501.html") as f:
+        with open(".pages/501.html") as f:
             body = f.read()
 
         line = self.make_response_line(status_code=501)
@@ -67,8 +67,12 @@ class HTTPServer(TCPServer):
 
     def handle_GET(self, request_uri):
         """Handles GET request."""
-        filename = request_uri.strip("/") or "index.html"
+        request_uri = request_uri.strip("/")
 
+        if request_uri.startswith(".pages"):
+            return self.handle_404_HTTP()
+
+        filename = request_uri or "index.html"
         if os.path.exists(filename):
             with open(filename) as f:
                 body = f.read()
