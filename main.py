@@ -1,4 +1,5 @@
 import os
+import mimetypes
 import socket
 from http.client import responses
 from email.utils import formatdate
@@ -15,11 +16,11 @@ def serve_forever(f, *args, **kwargs):
 class TCPServer:
     def accept_and_send(self, socket):
         """Accepts incoming connection to the socket and sends back data."""
-        (conn, addr) = socket.accept()
+        (conn, addr) = socket.accept()  # accept will block until a new client connects
         print("Connected at %s on %s" % addr)
-        data = conn.recv(1024)
+        data = conn.recv(2048)
         response = self.handle_request(data)
-        conn.sendall(response)
+        conn.sendall(response)  # inside repeatedly calls send
         conn.close()
 
     def handle_request(self, data):
@@ -39,7 +40,7 @@ class TCPServer:
 class HTTPServer(TCPServer):
     http_version = "HTTP/1.1"
 
-    def handle_404_HTTP(self):
+    def handle_404_HTTP(self, request_uri=None):
         """Handles 404 Not found."""
         with open(".pages/404.html") as f:
             body = f.read()
@@ -52,7 +53,7 @@ class HTTPServer(TCPServer):
 
         return bytes(response, "utf-8")
 
-    def handle_501_HTTP(self):
+    def handle_501_HTTP(self, request_uri=None):
         """Handles 501 Not Implemented."""
         with open(".pages/501.html") as f:
             body = f.read()
@@ -65,7 +66,7 @@ class HTTPServer(TCPServer):
 
         return bytes(response, "utf-8")
 
-    def handle_GET(self, request_uri):
+    def handle_GET(self, request_uri=None):
         """Handles GET request."""
         request_uri = request_uri.strip("/")
 
@@ -74,20 +75,21 @@ class HTTPServer(TCPServer):
 
         filename = request_uri or "index.html"
         if os.path.exists(filename):
-            with open(filename) as f:
+            with open(filename, "rb") as f:
                 body = f.read()
 
             line = self.make_response_line()
             headers = self.make_response_headers(
-                more_headers={"Content-Length": len(bytes(body, "utf-8"))}
+                mime_type=mimetypes.guess_type(filename)[0],
+                more_headers={"Content-Length": len(body)},
             )
-            response = "\r\n".join([line, headers, "", body])
+            response_except_body = "\r\n".join([line, headers, ""])
 
-            return bytes(response, "utf-8")
+            return b"\r\n".join([bytes(response_except_body, "utf-8"), body])
 
         return self.handle_404_HTTP()
 
-    def handle_OPTIONS(self, _):
+    def handle_OPTIONS(self, request_uri=None):
         """Handles OPTIONS request."""
         line = self.make_response_line()
         headers = self.make_response_headers(more_headers={"Allow": "GET, OPTIONS"})
@@ -98,17 +100,16 @@ class HTTPServer(TCPServer):
     def handle_request(self, data):
         """Handles incoming data and returns a response."""
         request = self.parse_request(data)
-        handler = getattr(self, f"handle_{request['method']}", None)
+        handler = getattr(self, f"handle_{request['method']}", self.handle_501_HTTP)
 
-        if handler:
-            return handler(request["uri"])
-        return self.handle_501_HTTP()
+        return handler(request_uri=request["uri"])
 
     def make_response_headers(self, mime_type="text/html; charset=UTF-8", more_headers=None):
         """Constructs response headers.
         The `more_headers` is a dict to send additional headers.
         """
         headers = {
+            "Connection": "keep-alive",
             "Content-Type": mime_type,
             "Date": formatdate(timeval=None, localtime=False, usegmt=True),
         }
