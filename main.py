@@ -14,9 +14,11 @@ def serve_forever(f, *args, **kwargs):
 
 
 class TCPServer:
+    """Implements TCP server."""
+
     def accept_and_send(self, socket):
         """Accepts incoming connection to the socket and sends back data."""
-        (conn, addr) = socket.accept()  # accept will block until a new client connects
+        conn, addr = socket.accept()  # accept will block until a new client connects
         print("Connected at %s on %s" % addr)
         data = conn.recv(2048)
         response = self.handle_request(data)
@@ -43,6 +45,8 @@ class TCPServer:
 
 
 class HTTPServer(TCPServer):
+    """Implements HTTP server."""
+
     http_version = "HTTP/1.1"
 
     def handle_404_HTTP(self, request_uri=None):
@@ -83,7 +87,7 @@ class HTTPServer(TCPServer):
 
             line = self.make_response_line()
             headers = self.make_response_headers(
-                mime_type=mimetypes.guess_type(filename)[0],
+                mime_type=head(mimetypes.guess_type(filename)),
                 more_headers={"Content-Length": len(body)},
             )
             response_except_body = "\r\n".join([line, headers, ""])
