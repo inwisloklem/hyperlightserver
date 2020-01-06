@@ -28,13 +28,18 @@ class TCPServer:
 
     def start(self, host="127.0.0.1", port=4444):
         """Starts a hyperlightserver."""
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind((host, port))
-            s.listen(5)
+        try:
+            addr = (host, port)
 
-            print("Listening at %s on %s" % s.getsockname())
-            serve_forever(self.accept_and_send, s)
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                s.bind(addr)
+                s.listen(5)
+
+                print("Listening at %s on %s" % s.getsockname())
+                serve_forever(self.accept_and_send, s)
+        except KeyboardInterrupt:
+            print("Interrupted")
 
 
 class HTTPServer(TCPServer):
@@ -68,12 +73,10 @@ class HTTPServer(TCPServer):
 
     def handle_GET(self, request_uri=None):
         """Handles GET request."""
-        request_uri = request_uri.strip("/")
-
-        if request_uri.startswith(".pages"):
+        if request_uri.startswith("/.pages"):
             return self.handle_404_HTTP()
 
-        filename = request_uri or "index.html"
+        filename = request_uri.strip("/") or "index.html"
         if os.path.exists(filename):
             with open(filename, "rb") as f:
                 body = f.read()
@@ -99,17 +102,16 @@ class HTTPServer(TCPServer):
 
     def handle_request(self, data):
         """Handles incoming data and returns a response."""
-        request = self.parse_request(data)
-        handler = getattr(self, f"handle_{request['method']}", self.handle_501_HTTP)
+        method, uri = self.parse_request(data)
+        handler = getattr(self, f"handle_{method}", self.handle_501_HTTP)
 
-        return handler(request_uri=request["uri"])
+        return handler(request_uri=uri)
 
     def make_response_headers(self, mime_type="text/html; charset=UTF-8", more_headers=None):
         """Constructs response headers.
         The `more_headers` is a dict to send additional headers.
         """
         headers = {
-            "Connection": "keep-alive",
             "Content-Type": mime_type,
             "Date": formatdate(timeval=None, localtime=False, usegmt=True),
         }
@@ -136,7 +138,7 @@ class HTTPServer(TCPServer):
         lines = str(data, "utf-8").split("\r\n")
         method, uri, _ = head(lines).split(" ")
 
-        return {"method": method, "uri": uri}
+        return (method, uri)
 
 
 if __name__ == "__main__":
