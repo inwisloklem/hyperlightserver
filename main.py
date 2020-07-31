@@ -6,6 +6,9 @@ from email.utils import formatdate
 
 
 def head(xs):
+    """
+    Gets first element of a list
+    """
     return xs[0]
 
 
@@ -132,7 +135,7 @@ class HTTPServer(TCPServer):
     def make_response_headers(self, mime_type="text/html; charset=UTF-8", more_headers=None):
         """
         Constructs response headers.
-        The `more_headers` is a dict to send additional headers
+        `more_headers` is a dict to send additional headers
         """
         headers = {
             "Content-Type": mime_type,
