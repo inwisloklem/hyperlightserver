@@ -8,16 +8,22 @@ head = lambda xs: xs[0]
 
 
 def serve_forever(f, *args, **kwargs):
-    """Runs a function forever in a loop."""
+    """
+    Runs a function forever in a loop
+    """
     while True:
         f(*args, **kwargs)
 
 
 class TCPServer:
-    """Implements TCP server."""
+    """
+    Implements TCP server
+    """
 
     def accept_and_send(self, socket):
-        """Accepts incoming connection to the socket and sends back data."""
+        """
+        Accepts incoming connection to the socket and sends back data
+        """
         conn, addr = socket.accept()  # accept will block until a new client connects
         print("Connected at %s on %s" % addr)
         data = conn.recv(2048)
@@ -29,7 +35,9 @@ class TCPServer:
         return data
 
     def start(self, host="127.0.0.1", port=4444):
-        """Starts a hyperlightserver."""
+        """
+        Starts a hyperlightserver
+        """
         try:
             addr = (host, port)
 
@@ -45,12 +53,16 @@ class TCPServer:
 
 
 class HTTPServer(TCPServer):
-    """Implements HTTP server."""
+    """
+    Implements HTTP server
+    """
 
     http_version = "HTTP/1.1"
 
     def handle_404_HTTP(self, request_uri=None):
-        """Handles 404 Not found."""
+        """
+        Handles 404 Not found
+        """
         with open(".pages/404.html") as f:
             body = f.read()
 
@@ -63,7 +75,9 @@ class HTTPServer(TCPServer):
         return bytes(response, "utf-8")
 
     def handle_501_HTTP(self, request_uri=None):
-        """Handles 501 Not Implemented."""
+        """
+        Handles 501 Not Implemented
+        """
         with open(".pages/501.html") as f:
             body = f.read()
 
@@ -76,7 +90,9 @@ class HTTPServer(TCPServer):
         return bytes(response, "utf-8")
 
     def handle_GET(self, request_uri=None):
-        """Handles GET request."""
+        """
+        Handles GET request
+        """
         if request_uri.startswith("/.pages"):
             return self.handle_404_HTTP()
 
@@ -97,7 +113,9 @@ class HTTPServer(TCPServer):
         return self.handle_404_HTTP()
 
     def handle_OPTIONS(self, request_uri=None):
-        """Handles OPTIONS request."""
+        """
+        Handles OPTIONS request
+        """
         line = self.make_response_line()
         headers = self.make_response_headers(more_headers={"Allow": "GET, OPTIONS"})
         response = "\r\n".join([line, headers, ""])
@@ -105,15 +123,18 @@ class HTTPServer(TCPServer):
         return bytes(response, "utf-8")
 
     def handle_request(self, data):
-        """Handles incoming data and returns a response."""
+        """
+        Handles incoming data and returns a response
+        """
         method, uri = self.parse_request(data)
         handler = getattr(self, f"handle_{method}", self.handle_501_HTTP)
 
         return handler(request_uri=uri)
 
     def make_response_headers(self, mime_type="text/html; charset=UTF-8", more_headers=None):
-        """Constructs response headers.
-        The `more_headers` is a dict to send additional headers.
+        """
+        Constructs response headers.
+        The `more_headers` is a dict to send additional headers
         """
         headers = {
             "Content-Type": mime_type,
@@ -126,7 +147,8 @@ class HTTPServer(TCPServer):
         return "\r\n".join([f"{k}: {v}" for k, v in headers.items()])
 
     def make_response_line(self, status_code=200):
-        """Constructs response line from HTTP version, status code and message.
+        """
+        Constructs response line from HTTP version, status code and message
 
         HTTP version Status code Message
         HTTP/1.1     200         OK
@@ -134,7 +156,8 @@ class HTTPServer(TCPServer):
         return " ".join([self.http_version, str(status_code), responses[status_code]])
 
     def parse_request(self, data):
-        """Parses request and returns a request method.
+        """
+        Parses request and returns a request method
 
         Method URI HTTP version
         GET    /   HTTP/1.1
