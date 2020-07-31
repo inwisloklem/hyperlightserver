@@ -4,7 +4,9 @@ import socket
 from http.client import responses
 from email.utils import formatdate
 
-head = lambda xs: xs[0]
+
+def head(xs):
+    return xs[0]
 
 
 def serve_forever(f, *args, **kwargs):
@@ -19,7 +21,6 @@ class TCPServer:
     """
     Implements TCP server
     """
-
     def accept_and_send(self, socket):
         """
         Accepts incoming connection to the socket and sends back data
@@ -56,7 +57,6 @@ class HTTPServer(TCPServer):
     """
     Implements HTTP server
     """
-
     http_version = "HTTP/1.1"
 
     def handle_404_HTTP(self):
@@ -68,8 +68,7 @@ class HTTPServer(TCPServer):
 
         line = self.make_response_line(status_code=404)
         headers = self.make_response_headers(
-            more_headers={"Content-Length": len(bytes(body, "utf-8"))}
-        )
+            more_headers={"Content-Length": len(bytes(body, "utf-8"))})
         response = "\r\n".join([line, headers, "", body])
 
         return bytes(response, "utf-8")
@@ -83,8 +82,7 @@ class HTTPServer(TCPServer):
 
         line = self.make_response_line(status_code=501)
         headers = self.make_response_headers(
-            more_headers={"Content-Length": len(bytes(body, "utf-8"))}
-        )
+            more_headers={"Content-Length": len(bytes(body, "utf-8"))})
         response = "\r\n".join([line, headers, "", body])
 
         return bytes(response, "utf-8")
