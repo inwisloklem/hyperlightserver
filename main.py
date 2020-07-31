@@ -59,7 +59,7 @@ class HTTPServer(TCPServer):
 
     http_version = "HTTP/1.1"
 
-    def handle_404_HTTP(self, request_uri=None):
+    def handle_404_HTTP(self):
         """
         Handles 404 Not found
         """
@@ -74,7 +74,7 @@ class HTTPServer(TCPServer):
 
         return bytes(response, "utf-8")
 
-    def handle_501_HTTP(self, request_uri=None):
+    def handle_501_HTTP(self):
         """
         Handles 501 Not Implemented
         """
@@ -112,7 +112,7 @@ class HTTPServer(TCPServer):
 
         return self.handle_404_HTTP()
 
-    def handle_OPTIONS(self, request_uri=None):
+    def handle_OPTIONS(self):
         """
         Handles OPTIONS request
         """
